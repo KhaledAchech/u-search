@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <windows.h>
+
+const char DRIVES[4] = {'C','D','G','\0'};
 
 void init() {
 	system("cls");
@@ -33,17 +36,27 @@ void printDate() {
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+int checkDrive(char driveLetter) {
+	char drivePath[4];
+	sprintf(drivePath, "%c:\\", driveLetter);
+	return GetDriveType(drivePath) != DRIVE_NO_ROOT_DIR;
+}
+
 void search() {
 	char *fName;
 	positionText(5);
 	printf("What file are you looking for today? \n");
 	positionText(5);
 	scanf("%s", fName);
-   	
-	// On macOS and Linux // TO DO: to be updated spoonnn!
-	#ifdef __unix__
-		const char *command = "find / -name your_file_name.txt 2>/dev/null";
-	#endif
+	
+	int i;
+	char searchCommand[256];
+	for (i=0; i<3; i++) {
+		if (checkDrive(DRIVES[i])) {
+			sprintf(searchCommand, "dir %c:\\%s /s /b /a-d", DRIVES[i], fName);
+			system(searchCommand);
+		}
+	}
 }
 
 int main() {
