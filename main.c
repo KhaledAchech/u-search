@@ -49,6 +49,7 @@ void search() {
 	positionText(5);
 	scanf("%s", fName);
 	
+	// TO DO: update with the windows.h library for faster results
 	int i;
 	char searchCommand[256];
 	for (i=0; i<3; i++) {
