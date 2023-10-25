@@ -42,20 +42,50 @@ int checkDrive(char driveLetter) {
 	return GetDriveType(drivePath) != DRIVE_NO_ROOT_DIR;
 }
 
+void windowsSearch(const char* directory, const char* fName) {
+	char searchPath[MAX_PATH];
+	WIN32_FIND_DATA findFileData;
+	sprintf(searchPath, "%c\\*", directory); // TO DO: to be fixed.
+	printf("search path: %s\n", searchPath);
+    HANDLE hFind = FindFirstFile(searchPath, &findFileData);
+    
+	if (hFind == INVALID_HANDLE_VALUE) {
+		printf("FindFirstFile failed (%d)\n", GetLastError());
+		return;
+	}
+	
+	do {
+		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+    		// Skip '.' and '..' directories
+			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
+	            char subDirectory[MAX_PATH];
+	            sprintf(subDirectory, "%s\\%s", directory, findFileData.cFileName);
+	            printf("%s\n", subDirectory);
+	            windowsSearch(subDirectory, fName);
+	        }
+        } else {
+            // Check if the file matches the search criteria
+            if (strcmp(findFileData.cFileName, fName) == 0) {
+                printf("Found: %s\\%s\n", directory, findFileData.cFileName);
+            }
+        }
+    } while (FindNextFile(hFind, &findFileData) != 0);
+	
+	FindClose(hFind);
+    
+}
+
 void search() {
-	char *fName;
+	char fName[32];
 	positionText(5);
 	printf("What file are you looking for today? \n");
 	positionText(5);
 	scanf("%s", fName);
 	
-	// TO DO: update with the windows.h library for faster results
 	int i;
-	char searchCommand[256];
 	for (i=0; i<3; i++) {
 		if (checkDrive(DRIVES[i])) {
-			sprintf(searchCommand, "dir %c:\\%s /s /b /a-d", DRIVES[i], fName);
-			system(searchCommand);
+			windowsSearch(DRIVES[i], fName);
 		}
 	}
 }
