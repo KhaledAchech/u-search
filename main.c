@@ -36,18 +36,26 @@ void printDate() {
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
-int checkDrive(char driveLetter) {
+char *checkDrive(char driveLetter) {
 	char drivePath[4];
-	sprintf(drivePath, "%c:\\", driveLetter);
-	return GetDriveType(drivePath) != DRIVE_NO_ROOT_DIR;
+	sprintf(drivePath, "%c:", driveLetter);
+	if(GetDriveType(drivePath) != DRIVE_NO_ROOT_DIR) return drivePath;
+	else 											 return 	   "";
 }
 
-void windowsSearch(const char* directory, const char* fName) {
+void showResults() {
+	
+}
+
+void windowsSearch(const char* path, const char* fName) {
+	
+	printf("New Call \n");
 	char searchPath[MAX_PATH];
+	snprintf(searchPath, sizeof(searchPath), "%s\\*", path);
+	printf("Path: %s \n", path);
 	WIN32_FIND_DATA findFileData;
-	sprintf(searchPath, "%c\\*", directory); // TO DO: to be fixed.
-	printf("search path: %s\n", searchPath);
     HANDLE hFind = FindFirstFile(searchPath, &findFileData);
+    printf("Search Path: %s \n", searchPath);
     
 	if (hFind == INVALID_HANDLE_VALUE) {
 		printf("FindFirstFile failed (%d)\n", GetLastError());
@@ -59,24 +67,37 @@ void windowsSearch(const char* directory, const char* fName) {
     		// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
 	            char subDirectory[MAX_PATH];
-	            sprintf(subDirectory, "%s\\%s", directory, findFileData.cFileName);
-	            printf("%s\n", subDirectory);
+	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
+	            printf("new Search Path: %s \n", searchPath);
+	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
+	            printf("subDirectory: %s \n", subDirectory);
 	            windowsSearch(subDirectory, fName);
 	        }
         } else {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
-                printf("Found: %s\\%s\n", directory, findFileData.cFileName);
+            	printf("\n");
+            	printf("\n");
+				printf("Found: %s \n", searchPath);
+            	printf("\n");
+            	printf("\n");
             }
         }
     } while (FindNextFile(hFind, &findFileData) != 0);
 	
+	DWORD dwError = GetLastError();
+    if (dwError != ERROR_NO_MORE_FILES) {
+        printf("FindNextFile failed (%d)\n", dwError);
+    }
+	
 	FindClose(hFind);
+	free((void *)path); // Free the dynamically allocated memory for path
     
 }
 
 void search() {
 	char fName[32];
+	char *path;
 	positionText(5);
 	printf("What file are you looking for today? \n");
 	positionText(5);
@@ -84,8 +105,9 @@ void search() {
 	
 	int i;
 	for (i=0; i<3; i++) {
-		if (checkDrive(DRIVES[i])) {
-			windowsSearch(DRIVES[i], fName);
+		path = checkDrive(DRIVES[i]);
+		if (path[0] != '\0') {
+			windowsSearch(path, fName);
 		}
 	}
 }
