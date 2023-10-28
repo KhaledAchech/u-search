@@ -4,6 +4,13 @@
 #include <windows.h>
 
 const char DRIVES[4] = {'C','D','G','\0'};
+HANDLE hSearchFinishedEvent;
+HANDLE hLoadingBarThread;
+
+struct SearchParameters {
+    const char* path;
+    const char* fName;
+};
 
 void init() {
 	system("cls");
@@ -29,6 +36,29 @@ void positionText(int col) {
 	printf("\033[%dC", col);
 }
 
+void loadingBar()
+{ 
+    char a = 177, b = 219; 
+  
+    printf("\n\n\n\n"); 
+    printf("\n\n\n\n\t\t\t\t\tLoading...\n\n"); 
+    printf("\t\t\t\t\t"); 
+  	
+	int i;
+    for (i = 0; i < 26; i++)
+		printf("%c", a); 
+  
+    printf("\r"); 
+    printf("\t\t\t\t\t"); 
+  
+    for (i = 0; i < 26; i++) { 
+        printf("%c", b);
+        fflush(stdout);
+        Sleep(1000); 
+    } 
+
+}
+
 void printDate() {
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
@@ -47,43 +77,44 @@ void showResults() {
 	
 }
 
-void windowsSearch(const char* path, const char* fName) {
+DWORD WINAPI windowsSearch(LPVOID lpParam) {
 	
-	printf("New Call \n");
+	struct SearchParameters* searchParams = (struct SearchParameters*)lpParam;
+	const char* path = searchParams->path;
+    const char* fName = searchParams->fName;
+	
 	char searchPath[MAX_PATH];
 	snprintf(searchPath, sizeof(searchPath), "%s\\*", path);
-	printf("Path: %s \n", path);
+	
 	WIN32_FIND_DATA findFileData;
     HANDLE hFind = FindFirstFile(searchPath, &findFileData);
-    printf("Search Path: %s \n", searchPath);
     
 	if (hFind == INVALID_HANDLE_VALUE) {
-		printf("FindFirstFile failed (%d)\n", GetLastError());
+		// printf("FindFirstFile failed (%d)\n", GetLastError());
 		return;
 	}
-	
+
 	do {
 		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
     		// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
-	            printf("new Search Path: %s \n", searchPath);
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
-	            printf("subDirectory: %s \n", subDirectory);
-	            windowsSearch(subDirectory, fName);
+	            searchParams->path = subDirectory;
+	            searchParams->fName = fName;
+	            windowsSearch(searchParams);
 	        }
         } else {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
-            	printf("\n");
-            	printf("\n");
 				printf("Found: %s \n", searchPath);
-            	printf("\n");
-            	printf("\n");
             }
         }
+        
+        
     } while (FindNextFile(hFind, &findFileData) != 0);
+	
 	
 	DWORD dwError = GetLastError();
     if (dwError != ERROR_NO_MORE_FILES) {
@@ -91,7 +122,9 @@ void windowsSearch(const char* path, const char* fName) {
     }
 	
 	FindClose(hFind);
-	free((void *)path); // Free the dynamically allocated memory for path
+	free((void *)path);
+	SetEvent(hSearchFinishedEvent);
+    return 0;
     
 }
 
@@ -102,12 +135,22 @@ void search() {
 	printf("What file are you looking for today? \n");
 	positionText(5);
 	scanf("%s", fName);
-	
+    
 	int i;
+	struct SearchParameters searchParams;
+	hSearchFinishedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 	for (i=0; i<3; i++) {
 		path = checkDrive(DRIVES[i]);
 		if (path[0] != '\0') {
-			windowsSearch(path, fName);
+			searchParams.path = path;
+    		searchParams.fName = fName;
+    		HANDLE hSearchThread = CreateThread(NULL, 0, windowsSearch, &searchParams, 0, NULL);
+    		if (hSearchThread == NULL) return 1;
+			loadingBar();
+			WaitForSingleObject(hSearchFinishedEvent, INFINITE);
+			CloseHandle(hSearchFinishedEvent);
+    		CloseHandle(hSearchThread);
+			//windowsSearch(path, fName);
 		}
 	}
 }
