@@ -43,12 +43,12 @@ char *checkDrive(char driveLetter) {
 	return "";
 }
 
-void windowsSearch(const char* path, const char* fName) {
+void windowsSearch(const char* path, const char* fName, int* cntr) {
 	
 	char searchPath[MAX_PATH];
 	snprintf(searchPath, sizeof(searchPath), "%s\\*", path);
 	
-	sWIN32_FIND_DATA findFileData;
+	WIN32_FIND_DATA findFileData;
 	HANDLE hFind = FindFirstFile(searchPath, &findFileData);
     
 	if (hFind == INVALID_HANDLE_VALUE) return;
@@ -60,7 +60,7 @@ void windowsSearch(const char* path, const char* fName) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
-	            windowsSearch(subDirectory, fName);
+	            windowsSearch(subDirectory, fName, cntr);
 			}
 		} else {
             // Check if the file matches the search criteria
@@ -69,6 +69,7 @@ void windowsSearch(const char* path, const char* fName) {
             	printf("\n");
             	positionText(5);
 				printf("Found: %s \n", searchPath);
+				(*cntr)++;
             	printf("\n");
             	printf("\n");
             }
@@ -90,13 +91,27 @@ void search() {
 	positionText(5);
 	scanf("%s", fName);
 	
-	int i;
+	char plural;
+	int i, foundCntr=0;
 	for (i=0; i<3; i++) {
 		path = checkDrive(DRIVES[i]);
-		if (path[0] != '\0') {
-			windowsSearch(path, fName);
-		}
+		if (path[0] != '\0') windowsSearch(path, fName, &foundCntr);
 	}
+	
+	positionText(5);
+	plural = (foundCntr > 1) ? 's' : '\0'; // 's' for multiple results or an empty char ('\0').
+	if (foundCntr > 0) printf("We found %d file%c with that name.\n", foundCntr, plural);
+}
+
+void quit() {
+	// TO DO : not secured and not working properly; need changing!
+	int exitCode;
+	positionText(5);
+	printf("Type 1 if you want to exit? \n");
+	positionText(5);
+	scanf("%d", exitCode);
+	if (exitCode == 1) exit(exitCode);
+	return;
 }
 
 int main() {
@@ -104,7 +119,10 @@ int main() {
 	init();
 	banner();
 	printDate();
-	search();
-   	
+	while (1) { 
+		search();
+		//quit();
+	}
+	
    	return 0;
 }
