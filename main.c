@@ -40,22 +40,16 @@ char *checkDrive(char driveLetter) {
 	char drivePath[4];
 	sprintf(drivePath, "%c:", driveLetter);
 	if(GetDriveType(drivePath) != DRIVE_NO_ROOT_DIR) return drivePath;
-	else 											 return 	   "";
-}
-
-void showResults() {
-	
+	return "";
 }
 
 void windowsSearch(const char* path, const char* fName) {
 	
-	printf("New Call \n");
 	char searchPath[MAX_PATH];
 	snprintf(searchPath, sizeof(searchPath), "%s\\*", path);
-	printf("Path: %s \n", path);
+	
 	WIN32_FIND_DATA findFileData;
     HANDLE hFind = FindFirstFile(searchPath, &findFileData);
-    printf("Search Path: %s \n", searchPath);
     
 	if (hFind == INVALID_HANDLE_VALUE) {
 		printf("FindFirstFile failed (%d)\n", GetLastError());
@@ -68,9 +62,7 @@ void windowsSearch(const char* path, const char* fName) {
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
-	            printf("new Search Path: %s \n", searchPath);
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
-	            printf("subDirectory: %s \n", subDirectory);
 	            windowsSearch(subDirectory, fName);
 	        }
         } else {
@@ -78,6 +70,7 @@ void windowsSearch(const char* path, const char* fName) {
             if (strcmp(findFileData.cFileName, fName) == 0) {
             	printf("\n");
             	printf("\n");
+            	positionText(5);
 				printf("Found: %s \n", searchPath);
             	printf("\n");
             	printf("\n");
@@ -91,7 +84,6 @@ void windowsSearch(const char* path, const char* fName) {
     }
 	
 	FindClose(hFind);
-	free((void *)path); // Free the dynamically allocated memory for path
     
 }
 
