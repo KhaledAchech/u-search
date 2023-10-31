@@ -48,24 +48,21 @@ void windowsSearch(const char* path, const char* fName) {
 	char searchPath[MAX_PATH];
 	snprintf(searchPath, sizeof(searchPath), "%s\\*", path);
 	
-	WIN32_FIND_DATA findFileData;
-    HANDLE hFind = FindFirstFile(searchPath, &findFileData);
+	sWIN32_FIND_DATA findFileData;
+	HANDLE hFind = FindFirstFile(searchPath, &findFileData);
     
-	if (hFind == INVALID_HANDLE_VALUE) {
-		printf("FindFirstFile failed (%d)\n", GetLastError());
-		return;
-	}
+	if (hFind == INVALID_HANDLE_VALUE) return;
 	
 	do {
 		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
-    		// Skip '.' and '..' directories
+			// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
 	            windowsSearch(subDirectory, fName);
-	        }
-        } else {
+			}
+		} else {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
             	printf("\n");
@@ -75,13 +72,11 @@ void windowsSearch(const char* path, const char* fName) {
             	printf("\n");
             	printf("\n");
             }
-        }
+		}
     } while (FindNextFile(hFind, &findFileData) != 0);
 	
 	DWORD dwError = GetLastError();
-    if (dwError != ERROR_NO_MORE_FILES) {
-        printf("FindNextFile failed (%d)\n", dwError);
-    }
+    if (dwError != ERROR_NO_MORE_FILES) printf("FindNextFile failed (%d)\n", dwError);
 	
 	FindClose(hFind);
     
