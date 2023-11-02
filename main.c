@@ -36,6 +36,33 @@ void printDate() {
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+void loadingBar() 
+{ 
+	// Initialize char for printing 
+	// loading bar 
+	char a = 177, b = 219;
+	
+	printf("\n\n\n\n"); 
+	printf("\n\n\n\n\t\t\t\t\tLoading...\n\n"); 
+	printf("\t\t\t\t\t"); 
+	
+	// Print initial loading bar 
+	int i;
+	for (i=0; i<26; i++) printf("%c", a);
+
+	// Set the cursor again starting 
+	// point of loading bar 
+	printf("\r"); 
+	printf("\t\t\t\t\t"); 
+	
+	// Print loading bar progress 
+	for (i=0; i<26; i++) { 
+	    printf("%c", b); 
+	    // Sleep for 1 second 
+	    Sleep(1000); 
+	}
+} 
+
 char *checkDrive(char driveLetter) {
 	char drivePath[4];
 	sprintf(drivePath, "%c:", driveLetter);
@@ -119,6 +146,7 @@ int main() {
 	init();
 	banner();
 	printDate();
+	//loadingBar();
 	while (1) { 
 		search();
 		//quit();
