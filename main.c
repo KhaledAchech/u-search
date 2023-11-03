@@ -63,7 +63,7 @@ void *loadingBar(void *args)
 		pthread_mutex_unlock(&lock);
 		usleep(1000000);
 	}
-	printf("\nTask completed!\n");
+
 	return NULL;
 } 
 
@@ -102,13 +102,13 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
             	positionText(5);
 				printf("Found: %s \n", searchPath);
 				(*cntr)++;
-				progress += 10;
             	printf("\n");
             	printf("\n");
             }
 		}
-		pthread_mutex_unlock(&lock);
     } while (FindNextFile(hFind, &findFileData) != 0);
+	progress += 10;
+	pthread_mutex_unlock(&lock);
 	
 	DWORD dwError = GetLastError();
     if (dwError != ERROR_NO_MORE_FILES) printf("FindNextFile failed (%d)\n", dwError);
@@ -125,12 +125,25 @@ void search() {
 	positionText(5);
 	scanf("%s", fName);
     
+    pthread_t loadingThread;
+    pthread_mutex_init(&lock, NULL);
+    
 	char plural;
 	int i, foundCntr=0;
 	for (i=0; i<3; i++) {
 		path = checkDrive(DRIVES[i]);
-		if (path[0] != '\0') windowsSearch(path, fName, &foundCntr);
+		if (path[0] != '\0') {
+			positionText(5);
+			if (pthread_create(&loadingThread, NULL, loadingBar, NULL) != 0) perror("\n Failed to create loading thread \n");
+			positionText(5);
+			printf("\nSearching in the %c drive...\n", DRIVES[i]);
+			positionText(5);
+			windowsSearch(path, fName, &foundCntr);
+			pthread_mutex_lock(&lock);
+		}
 	}
+	progress = 100;
+	pthread_mutex_unlock(&lock);
 	
 	positionText(5);
 	plural = (foundCntr > 1) ? 's' : '\0'; // 's' for multiple results or an empty char ('\0').
@@ -154,16 +167,8 @@ int main() {
 	banner();
 	printDate();
 	//loadingBar();
-	pthread_t loadingThread;
-    pthread_mutex_init(&lock, NULL);
-
 	while (1) { 
 		search();
-		pthread_mutex_lock(&lock);
-		progress = 100;
-		pthread_mutex_unlock(&lock);
-		pthread_join(loadingThread, NULL);
-		pthread_mutex_destroy(&lock);
 		//quit();
 	}
 	
