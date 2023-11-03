@@ -1,9 +1,13 @@
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <windows.h>
 
 const char DRIVES[4] = {'C','D','G','\0'};
+pthread_mutex_t lock;
+int progress = 0;
 
 void init() {
 	system("cls");
@@ -36,31 +40,31 @@ void printDate() {
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
-void loadingBar() 
+void *loadingBar(void *args) 
 { 
-	// Initialize char for printing 
-	// loading bar 
 	char a = 177, b = 219;
+	int barLength = 26;
 	
 	printf("\n\n\n\n"); 
 	printf("\n\n\n\n\t\t\t\t\tLoading...\n\n"); 
 	printf("\t\t\t\t\t"); 
 	
-	// Print initial loading bar 
 	int i;
-	for (i=0; i<26; i++) printf("%c", a);
-
-	// Set the cursor again starting 
-	// point of loading bar 
-	printf("\r"); 
-	printf("\t\t\t\t\t"); 
-	
-	// Print loading bar progress 
-	for (i=0; i<26; i++) { 
-	    printf("%c", b); 
-	    // Sleep for 1 second 
-	    Sleep(1000); 
+	while (progress < 100) {
+		pthread_mutex_lock(&lock);
+		
+		printf("\r\t\t\t\t\t");
+        for (i=0; i<barLength; i++) {
+			if (i < (progress * barLength / 100)) printf("%c", b);
+			else printf("%c", a);
+		}
+		printf(" %d%%", progress);
+		fflush(stdout);
+		pthread_mutex_unlock(&lock);
+		usleep(1000000);
 	}
+	printf("\nTask completed!\n");
+	return NULL;
 } 
 
 char *checkDrive(char driveLetter) {
@@ -81,6 +85,7 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
 	if (hFind == INVALID_HANDLE_VALUE) return;
 	
 	do {
+		pthread_mutex_lock(&lock);
 		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
@@ -97,10 +102,12 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
             	positionText(5);
 				printf("Found: %s \n", searchPath);
 				(*cntr)++;
+				progress += 10;
             	printf("\n");
             	printf("\n");
             }
 		}
+		pthread_mutex_unlock(&lock);
     } while (FindNextFile(hFind, &findFileData) != 0);
 	
 	DWORD dwError = GetLastError();
@@ -117,7 +124,7 @@ void search() {
 	printf("What file are you looking for today? \n");
 	positionText(5);
 	scanf("%s", fName);
-	
+    
 	char plural;
 	int i, foundCntr=0;
 	for (i=0; i<3; i++) {
@@ -147,8 +154,16 @@ int main() {
 	banner();
 	printDate();
 	//loadingBar();
+	pthread_t loadingThread;
+    pthread_mutex_init(&lock, NULL);
+
 	while (1) { 
 		search();
+		pthread_mutex_lock(&lock);
+		progress = 100;
+		pthread_mutex_unlock(&lock);
+		pthread_join(loadingThread, NULL);
+		pthread_mutex_destroy(&lock);
 		//quit();
 	}
 	
