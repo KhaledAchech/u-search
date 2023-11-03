@@ -9,11 +9,6 @@ const char DRIVES[4] = {'C','D','G','\0'};
 pthread_mutex_t lock;
 int progress = 0;
 
-void init() {
-	system("cls");
-	system("color 0A");
-}
-
 void banner() {
 	printf("\n");
 	printf("     /\\__\\         /\\  \\         /\\  \\         /\\  \\         /\\  \\    \n");
@@ -29,6 +24,7 @@ void banner() {
 	printf("\n");
 }
 
+// TO DO: add row tabulation as well
 void positionText(int col) {
 	printf("\033[%dC", col);
 }
@@ -38,6 +34,13 @@ void printDate() {
 	struct tm tm = *localtime(&t);
 	positionText(5);
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+void init() {
+	system("cls");
+	system("color 0A");
+	banner();
+	printDate();
 }
 
 void *loadingBar(void *args) 
@@ -61,7 +64,6 @@ void *loadingBar(void *args)
 		printf(" %d%%", progress);
 		fflush(stdout);
 		pthread_mutex_unlock(&lock);
-		usleep(1000000);
 	}
 
 	return NULL;
@@ -85,13 +87,15 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
 	if (hFind == INVALID_HANDLE_VALUE) return;
 	
 	do {
-		pthread_mutex_lock(&lock);
 		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
+	            positionText(5);
+				printf("\nSearching in : %s\n", subDirectory);
+				positionText(5);
 	            windowsSearch(subDirectory, fName, cntr);
 			}
 		} else {
@@ -107,8 +111,6 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
             }
 		}
     } while (FindNextFile(hFind, &findFileData) != 0);
-	progress += 10;
-	pthread_mutex_unlock(&lock);
 	
 	DWORD dwError = GetLastError();
     if (dwError != ERROR_NO_MORE_FILES) printf("FindNextFile failed (%d)\n", dwError);
@@ -121,56 +123,64 @@ void search() {
 	char fName[32];
 	char *path;
 	positionText(5);
-	printf("What file are you looking for today? \n");
+	printf("What file are you looking for? \n");
 	positionText(5);
 	scanf("%s", fName);
-    
-    pthread_t loadingThread;
-    pthread_mutex_init(&lock, NULL);
     
 	char plural;
 	int i, foundCntr=0;
 	for (i=0; i<3; i++) {
 		path = checkDrive(DRIVES[i]);
 		if (path[0] != '\0') {
-			positionText(5);
-			if (pthread_create(&loadingThread, NULL, loadingBar, NULL) != 0) perror("\n Failed to create loading thread \n");
-			positionText(5);
-			printf("\nSearching in the %c drive...\n", DRIVES[i]);
-			positionText(5);
 			windowsSearch(path, fName, &foundCntr);
-			pthread_mutex_lock(&lock);
 		}
 	}
-	progress = 100;
-	pthread_mutex_unlock(&lock);
 	
-	positionText(5);
 	plural = (foundCntr > 1) ? 's' : '\0'; // 's' for multiple results or an empty char ('\0').
-	if (foundCntr > 0) printf("We found %d file%c with that name.\n", foundCntr, plural);
+   	printf("\n");
+	printf("\n");
+	positionText(5);
+	if (foundCntr > 0) printf("We found %d file%c with the '%s' name.\n", foundCntr, plural, fName);
+	printf("\n");
+	printf("\n");
 }
 
-void quit() {
-	// TO DO : not secured and not working properly; need changing!
-	int exitCode;
-	positionText(5);
-	printf("Type 1 if you want to exit? \n");
-	positionText(5);
-	scanf("%d", exitCode);
-	if (exitCode == 1) exit(exitCode);
-	return;
+void menu() {
+	int choice;
+	
+	do {
+		printf("\n");
+		printf("\n");
+		positionText(5);
+		printf("U-searcher Menu:\n");
+		positionText(7);
+		printf("1. Search for a File\n");
+		positionText(7);
+		printf("2. Exit\n");
+		printf("\n");
+		positionText(5);
+		printf("Enter your choice: ");
+		scanf("%d", &choice);
+		
+		switch (choice) {
+		case 1:
+			search();
+			break;
+		case 2:
+			exit(1);
+			break;
+		default:
+			positionText(5);
+			printf("Invalid choice. Try again.\n");
+		}
+	} while (choice != 2);
+
 }
 
 int main() {
 	
 	init();
-	banner();
-	printDate();
-	//loadingBar();
-	while (1) { 
-		search();
-		//quit();
-	}
+	menu();
 	
    	return 0;
 }
