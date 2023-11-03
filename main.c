@@ -141,8 +141,6 @@ void search() {
 	printf("\n");
 	positionText(5);
 	if (foundCntr > 0) printf("We found %d file%c with the '%s' name.\n", foundCntr, plural, fName);
-	printf("\n");
-	printf("\n");
 }
 
 void menu() {
