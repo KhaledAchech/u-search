@@ -6,8 +6,7 @@
 #include <windows.h>
 
 const char DRIVES[4] = {'C','D','G','\0'};
-pthread_mutex_t lock;
-int progress = 0;
+int loadingFlag = 1;
 
 void banner() {
 	printf("\n");
@@ -36,37 +35,52 @@ void printDate() {
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+void hideCursor()
+{
+	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO info;
+	info.dwSize = 100;
+	info.bVisible = FALSE;
+	SetConsoleCursorInfo(consoleHandle, &info);
+}
+
 void init() {
+	SetConsoleTitle("Ultimum Searcher");
 	system("cls");
 	system("color 0A");
 	banner();
 	printDate();
+	hideCursor();
 }
 
-void *loadingBar(void *args) 
-{ 
-	char a = 177, b = 219;
-	int barLength = 26;
-	
-	printf("\n\n\n\n"); 
-	printf("\n\n\n\n\t\t\t\t\tLoading...\n\n"); 
-	printf("\t\t\t\t\t"); 
-	
+/*
+	Changed to a simple loading, because we don't have a clear indication
+	on how long the windows search is going to take on a specific drive
+	so we can't calculate the progress ratio in order to create two threads
+	that are really synchronous.
+*/
+void loading() { 
+	const int trigger = 500; // ms
+	const int numDots = 4;
+	const char prompt[] = "Loading";
 	int i;
-	while (progress < 100) {
-		pthread_mutex_lock(&lock);
-		
-		printf("\r\t\t\t\t\t");
-        for (i=0; i<barLength; i++) {
-			if (i < (progress * barLength / 100)) printf("%c", b);
-			else printf("%c", a);
-		}
-		printf(" %d%%", progress);
+	
+	printf("\n\n");
+	while (loadingFlag) {
+		// Return and clear with spaces, then return and print prompt.
+		printf("\r\t%*s\r\t%s", sizeof(prompt) - 1 + numDots, "", prompt);
 		fflush(stdout);
-		pthread_mutex_unlock(&lock);
+	
+		// Print numDots number of dots, one every trigger milliseconds.
+		for (i=0; i<numDots; i++) {
+			usleep(trigger*100);
+			fputc('.', stdout);
+			fflush(stdout);
+		}
 	}
-
-	return NULL;
+	
+	//Delete the last "Loading..." output
+	printf("\r%*s", sizeof(prompt) - 1 + numDots, "");
 } 
 
 char *checkDrive(char driveLetter) {
@@ -93,21 +107,13 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
 	            char subDirectory[MAX_PATH];
 	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
 	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
-	            positionText(5);
-				printf("\nSearching in : %s\n", subDirectory);
-				positionText(5);
 	            windowsSearch(subDirectory, fName, cntr);
 			}
 		} else {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
-            	printf("\n");
-            	printf("\n");
-            	positionText(5);
-				printf("Found: %s \n", searchPath);
+            	// TO DO: add the result to the temp list of paths;
 				(*cntr)++;
-            	printf("\n");
-            	printf("\n");
             }
 		}
     } while (FindNextFile(hFind, &findFileData) != 0);
@@ -119,9 +125,16 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
     
 }
 
+void* loadingThreadFunction(void* arg) {
+	loading(); // Start the loading animation.
+	return NULL;
+}
+
 void search() {
 	char fName[32];
 	char *path;
+	pthread_t loadingThread;
+	
 	positionText(5);
 	printf("What file are you looking for? \n");
 	positionText(5);
@@ -132,7 +145,15 @@ void search() {
 	for (i=0; i<3; i++) {
 		path = checkDrive(DRIVES[i]);
 		if (path[0] != '\0') {
+			loadingFlag = 1;
+			// Start the loading thread.
+			if (pthread_create(&loadingThread, NULL, loadingThreadFunction, NULL) != 0) {
+				perror("Error creating loading thread");
+				exit(1);
+			}
 			windowsSearch(path, fName, &foundCntr);
+			loadingFlag = 0;
+            pthread_join(loadingThread, NULL);
 		}
 	}
 	
@@ -159,6 +180,7 @@ void menu() {
 		positionText(5);
 		printf("Enter your choice: ");
 		scanf("%d", &choice);
+		printf("\n");
 		
 		switch (choice) {
 		case 1:
