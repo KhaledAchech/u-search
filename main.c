@@ -99,10 +99,10 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
 		if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
 			// Skip '.' and '..' directories
 			if (strcmp(findFileData.cFileName, ".") != 0 && strcmp(findFileData.cFileName, "..") != 0) {
-	            char subDirectory[MAX_PATH];
-	            if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
-	            snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
-	            windowsSearch(subDirectory, fName, cntr);
+				char subDirectory[MAX_PATH];
+				if (searchPath[strlen(searchPath)-1] == '*') searchPath[strlen(searchPath)-1] = '\0';
+				snprintf(subDirectory, sizeof(subDirectory), "%s\\%s", searchPath, findFileData.cFileName);
+				windowsSearch(subDirectory, fName, cntr);
 			}
 		} else {
             // Check if the file matches the search criteria
