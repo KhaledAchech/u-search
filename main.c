@@ -53,12 +53,7 @@ void init() {
 	hideCursor();
 }
 
-/*
-	Changed to a simple loading, because we don't have a clear indication
-	on how long the windows search is going to take on a specific drive
-	so we can't calculate the progress ratio in order to create two threads
-	that are really synchronous.
-*/
+// TO DO: FIX: clearing the loading stream persist
 void loading() { 
 	const int trigger = 500; // ms
 	const int numDots = 4;
