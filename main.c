@@ -84,19 +84,19 @@ void loading() {
 
 // TO DO: make the necessary changes in the other parts of the code to use this helper method instead; a helping method to print errors
 void handlingErrors() {
-	errorID = getLastError();
-	FormatMessage(
+	errorID = GetLastError();
+	FormatMessageA(
 		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
 		NULL,
 		errorID,
 		0,
-		(LPWSR)&errorMsg,
+		(LPSTR)&errorMsg,
 		0,
 		NULL
 	);
 	
 	if (errorMsg != NULL) {
-		wprintf(L"Error %u: %s\n", errorID, errorMsg);
+		wprintf(L"Error %u: %s\n", errorID, (LPSTR)errorMsg);
 		LocalFree(errorMsg);
 	} else {
 		fprintf(stderr, "Error formating message for code %d", errorID);
