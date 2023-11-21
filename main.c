@@ -96,11 +96,12 @@ void handlingErrors() {
 	);
 	
 	if (errorMsg != NULL) {
-		wprintf(L"Error %u: %s\n", errorID, (LPSTR)errorMsg);
-		LocalFree(errorMsg);
+		printf("Error %u: %s\n", errorID, (LPSTR)errorMsg);
 	} else {
 		fprintf(stderr, "Error formating message for code %d", errorID);
 	}
+	
+	LocalFree(errorMsg);
 }
 
 // Saves a copy to the file in the windows user local temp folder
