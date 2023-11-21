@@ -4,7 +4,6 @@
 #include <time.h>
 #include <unistd.h>
 #include <windows.h>
-#define BUFSIZE 65536
 
 DWORD errorID;
 LPVOID errorMsg;
@@ -97,21 +96,44 @@ void handlingErrors() {
 	
 	if (errorMsg != NULL) {
 		printf("Error %u: %s\n", errorID, (LPSTR)errorMsg);
+		LocalFree(errorMsg);
 	} else {
 		fprintf(stderr, "Error formating message for code %d", errorID);
 	}
+}
+
+char *getWindowsTempPath() {
+	char winDir[MAX_PATH];
+	DWORD winPath = GetWindowsDirectoryA(winDir, MAX_PATH);
 	
-	LocalFree(errorMsg);
+	//Check if GetWindowsDirectoryA worked properly
+	handlingErrors();
+	
+	char *winTempPath = (char *)malloc(MAX_PATH);
+	if (winTempPath == NULL) {
+		fprintf(stderr, "Error allocating memory for winTempPath.\n");
+		return NULL;
+	}
+	
+	snprintf(winTempPath, MAX_PATH, "%s\\Temp", winDir);
+	
+	// Check if the directory exists
+	if (GetFileAttributesA(winTempPath) == INVALID_FILE_ATTRIBUTES) {
+		// Directory does not exist, attempt to create it
+		if (!CreateDirectoryA(winTempPath, NULL)) {
+			handlingErrors();
+			return NULL;
+		}
+	}
+	
+	return winTempPath;
 }
 
 // Saves a copy to the file in the windows user local temp folder
 void saveToTemp() {
-	DWORD bufferSize = BUFSIZE;
-	char tempPath[MAX_PATH];
-
-	DWORD result = GetTempPathA(bufferSize, tempPath);
-	handlingErrors();
-	if (result) printf("Found the temp path: %s", tempPath);
+	char *tempPath = getWindowsTempPath();
+	printf("windows temp directory path is: %s\n", tempPath);
+	free(tempPath);
 }
 
 char *checkDrive(char driveLetter) {
