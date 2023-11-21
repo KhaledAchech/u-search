@@ -4,6 +4,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <windows.h>
+#define BUFSIZE 65536
+
+DWORD errorID;
+LPVOID errorMsg;
 
 const char DRIVES[4] = {'C','D','G','\0'};
 int loadingFlag = 1;
@@ -55,7 +59,7 @@ void init() {
 
 // TO DO: FIX: clearing the loading stream persist
 void loading() { 
-	const int trigger = 500; // ms
+	const int trigger = 50000; // ms
 	const int numDots = 4;
 	const char prompt[] = "Loading";
 	int i;
@@ -68,7 +72,7 @@ void loading() {
 	
 		// Print numDots number of dots, one every trigger milliseconds.
 		for (i=0; i<numDots; i++) {
-			usleep(trigger*100);
+			usleep(trigger);
 			fputc('.', stdout);
 			fflush(stdout);
 		}
@@ -76,7 +80,38 @@ void loading() {
 	
 	//Delete the last "Loading..." output
 	printf("\r%*s", sizeof(prompt) - 1 + numDots, "");
-} 
+}
+
+// TO DO: make the necessary changes in the other parts of the code to use this helper method instead; a helping method to print errors
+void handlingErrors() {
+	errorID = getLastError();
+	FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+		NULL,
+		errorID,
+		0,
+		(LPWSR)&errorMsg,
+		0,
+		NULL
+	);
+	
+	if (errorMsg != NULL) {
+		wprintf(L"Error %u: %s\n", errorID, errorMsg);
+		LocalFree(errorMsg);
+	} else {
+		fprintf(stderr, "Error formating message for code %d", errorID);
+	}
+}
+
+// Saves a copy to the file in the windows user local temp folder
+void saveToTemp() {
+	DWORD bufferSize = BUFSIZE;
+	char tempPath[MAX_PATH];
+
+	DWORD result = GetTempPathA(bufferSize, tempPath);
+	handlingErrors();
+	if (result) printf("Found the temp path: %s", tempPath);
+}
 
 char *checkDrive(char driveLetter) {
 	char drivePath[4];
@@ -117,7 +152,6 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
     if (dwError != ERROR_NO_MORE_FILES) printf("FindNextFile failed (%d)\n", dwError);
 	
 	FindClose(hFind);
-    
 }
 
 void* loadingThreadFunction(void* arg) {
@@ -193,9 +227,9 @@ void menu() {
 }
 
 int main() {
-	
-	init();
-	menu();
+	saveToTemp();
+//	init();
+//	menu();
 	
    	return 0;
 }
