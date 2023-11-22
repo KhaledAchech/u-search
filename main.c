@@ -164,9 +164,20 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
             	// TO DO: add the result to the temp list of paths;
-            	char *tempPath = getWindowsTempPath();
-            	printf("File: '%s' is saved in path: '%s'\n", fName, tempPath);
 				(*cntr)++;
+
+				char tempFileName[strlen(fName)+*cntr+4];
+				snprintf(tempFileName, sizeof(tempFileName), "%s%d.lnk", fName, *cntr);
+				
+				char *tempPath = getWindowsTempPath();
+				char shortcutPath[MAX_PATH];
+				char originalPath[MAX_PATH];
+				snprintf(originalPath, sizeof(originalPath), "%s\\%s", path, fName);
+				snprintf(shortcutPath, sizeof(shortcutPath), "%s\\%s", tempPath, tempFileName);
+        		BOOL isLinked = CreateSymbolicLinkA(shortcutPath, originalPath, 0);
+				
+				if (isLinked) printf("Result saved in the: %s\n", shortcutPath);
+				else handlingErrors();
 				free(tempPath);
             }
 		}
