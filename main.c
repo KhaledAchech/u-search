@@ -4,6 +4,10 @@
 #include <time.h>
 #include <unistd.h>
 #include <windows.h>
+#define NORMALTAB 5
+#define MEDIUMTAB 7
+#define BIGTAB 10
+
 
 DWORD errorID;
 LPVOID errorMsg;
@@ -34,10 +38,11 @@ void positionText(int col) {
 void printDate() {
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
-	positionText(5);
+	positionText(NORMALTAB);
 	printf("Date: %d-%02d-%02d %02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+// Hide Terminal Cursor
 void hideCursor()
 {
 	HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -94,12 +99,13 @@ void handlingErrors() {
 		NULL
 	);
 	
-	if (errorMsg != NULL) {
+	if (errorMsg == NULL) {
+		fprintf(stderr, "Error formating message for code %d", errorID);
+	} else {
 		printf("Error %u: %s\n", errorID, (LPSTR)errorMsg);
 		LocalFree(errorMsg);
-	} else {
-		fprintf(stderr, "Error formating message for code %d", errorID);
 	}
+	
 }
 
 char *getWindowsTempPath() {
@@ -116,7 +122,6 @@ char *getWindowsTempPath() {
 	}
 	
 	snprintf(winTempPath, MAX_PATH, "%s\\Temp", winDir);
-	
 	// Check if the directory exists
 	if (GetFileAttributesA(winTempPath) == INVALID_FILE_ATTRIBUTES) {
 		// Directory does not exist, attempt to create it
@@ -127,13 +132,6 @@ char *getWindowsTempPath() {
 	}
 	
 	return winTempPath;
-}
-
-// Saves a copy to the file in the windows user local temp folder
-void saveToTemp() {
-	char *tempPath = getWindowsTempPath();
-	printf("windows temp directory path is: %s\n", tempPath);
-	free(tempPath);
 }
 
 char *checkDrive(char driveLetter) {
@@ -166,7 +164,10 @@ void windowsSearch(const char* path, const char* fName, int* cntr) {
             // Check if the file matches the search criteria
             if (strcmp(findFileData.cFileName, fName) == 0) {
             	// TO DO: add the result to the temp list of paths;
+            	char *tempPath = getWindowsTempPath();
+            	printf("File: '%s' is saved in path: '%s'\n", fName, tempPath);
 				(*cntr)++;
+				free(tempPath);
             }
 		}
     } while (FindNextFile(hFind, &findFileData) != 0);
@@ -187,9 +188,9 @@ void search() {
 	char *path;
 	pthread_t loadingThread;
 	
-	positionText(5);
+	positionText(NORMALTAB);
 	printf("What file are you looking for? \n");
-	positionText(5);
+	positionText(NORMALTAB);
 	scanf("%s", fName);
     
 	char plural;
@@ -212,7 +213,7 @@ void search() {
 	plural = (foundCntr > 1) ? 's' : '\0'; // 's' for multiple results or an empty char ('\0').
    	printf("\n");
 	printf("\n");
-	positionText(5);
+	positionText(NORMALTAB);
 	if (foundCntr > 0) printf("We found %d file%c with the '%s' name.\n", foundCntr, plural, fName);
 }
 
@@ -222,14 +223,14 @@ void menu() {
 	do {
 		printf("\n");
 		printf("\n");
-		positionText(5);
+		positionText(NORMALTAB);
 		printf("U-searcher Menu:\n");
-		positionText(7);
+		positionText(MEDIUMTAB);
 		printf("1. Search for a File\n");
-		positionText(7);
+		positionText(MEDIUMTAB);
 		printf("2. Exit\n");
 		printf("\n");
-		positionText(5);
+		positionText(NORMALTAB);
 		printf("Enter your choice: ");
 		scanf("%d", &choice);
 		printf("\n");
@@ -242,7 +243,7 @@ void menu() {
 			exit(1);
 			break;
 		default:
-			positionText(5);
+			positionText(NORMALTAB);
 			printf("Invalid choice. Try again.\n");
 		}
 	} while (choice != 2);
@@ -250,9 +251,9 @@ void menu() {
 }
 
 int main() {
-	saveToTemp();
-//	init();
-//	menu();
+	//saveToTemp();
+	init();
+	menu();
 	
    	return 0;
 }
