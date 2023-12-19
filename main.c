@@ -9,6 +9,11 @@
 #define BIGTAB 10
 
 
+#define SYMBOLIC_LINK_FLAG_DIRECTORY (0x1)
+WINBASEAPI BOOLEAN APIENTRY CreateSymbolicLinkA ( LPCSTR lpSymlinkFileName, LPCSTR lpTargetFileName, DWORD dwFlags );
+WINBASEAPI BOOLEAN APIENTRY CreateSymbolicLinkW ( LPCWSTR lpSymlinkFileName, LPCWSTR lpTargetFileName, DWORD dwFlags );
+#define CreateSymbolicLink __MINGW_NAME_AW(CreateSymbolicLink)
+
 DWORD errorID;
 LPVOID errorMsg;
 
@@ -256,6 +261,7 @@ void menu() {
 		default:
 			positionText(NORMALTAB);
 			printf("Invalid choice. Try again.\n");
+			break;
 		}
 	} while (choice != 2);
 
